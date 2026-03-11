@@ -1,0 +1,129 @@
+@prefix ex: <http://example.org/> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+
+# プロジェクト
+ex:project/portfolio_site rdf:type ex:Project ;
+    rdfs:label "ポートフォリオサイト" ;
+    rdfs:comment "Reactを用いた個人ポートフォリオサイトの開発。モダンなUIとレスポンシブデザインを実装。" ;
+    ex:usedSkill "React", "TypeScript", "TailwindCSS" ;
+    ex:period "2023-01〜2023-03" ;
+    ex:achievement "社内デザイン賞受賞" ;
+    ex:role "フロントエンド開発リーダー" .
+
+ex:project/data_pipeline rdf:type ex:Project ;
+    rdfs:label "データパイプライン構築" ;
+    rdfs:comment "大規模データ処理のためのETLパイプラインをPythonで構築。" ;
+    ex:usedSkill "Python", "Pandas", "Apache Airflow" ;
+    ex:period "2023-06〜2023-09" ;
+    ex:challenge "100万件以上のデータを効率的に処理する必要があった" ;
+    ex:solution "並列処理とバッチ最適化により処理時間を70%削減" ;
+    ex:learned "大規模データ処理のベストプラクティス" .
+
+ex:project/team_app rdf:type ex:Project ;
+    rdfs:label "チーム管理アプリ" ;
+    rdfs:comment "アジャイル開発でのチーム協働支援アプリケーション。" ;
+    ex:usedSkill "Vue.js", "Firebase", "Node.js" ;
+    ex:period "2024-01〜2024-03" ;
+    ex:role "スクラムマスター兼フルスタック開発" ;
+    ex:team "5名のエンジニアチーム" ;
+    ex:impact "チームの生産性が30%向上" .
+
+# スキル
+ex:skill/react rdf:type ex:Skill ;
+    rdfs:label "React開発" ;
+    rdfs:comment "Reactを使用したWebアプリケーション開発の実務経験。" ;
+    ex:level "上級" ;
+    ex:duration "3年以上" ;
+    ex:relatedTo ex:project/portfolio_site .
+
+ex:skill/python rdf:type ex:Skill ;
+    rdfs:label "Python開発" ;
+    rdfs:comment "データ分析とバックエンド開発でのPython活用。" ;
+    ex:level "中級〜上級" ;
+    ex:duration "4年以上" ;
+    ex:relatedTo ex:project/data_pipeline .
+
+ex:skill/agile rdf:type ex:Skill ;
+    rdfs:label "アジャイル開発" ;
+    rdfs:comment "スクラムマスターとしてのチームファシリテーション経験。" ;
+    ex:level "中級" ;
+    ex:duration "2年" ;
+    ex:relatedTo ex:project/team_app .
+
+# 価値観
+ex:value/user_first rdf:type ex:Value ;
+    rdfs:label "ユーザーファースト" ;
+    rdfs:comment "常にユーザーの視点で考え、真の価値を提供することを重視。" ;
+    ex:motivation "技術は手段であり、ユーザーの課題解決が目的" ;
+    ex:experience "ユーザーインタビューを通じて要件を再定義した経験" .
+
+ex:value/continuous_learning rdf:type ex:Value ;
+    rdfs:label "継続的学習" ;
+    rdfs:comment "新しい技術やアプローチを学び続けることを大切にする。" ;
+    ex:motivation "技術の進化に対応し、より良いソリューションを提供したい" ;
+    ex:experience "毎週技術ブログを読み、月1冊の技術書を読破" .
+
+ex:value/team_collaboration rdf:type ex:Value ;
+    rdfs:label "チーム協働" ;
+    rdfs:comment "個人の力よりもチームでの相乗効果を重視。" ;
+    ex:motivation "多様な視点が集まることで、より良いプロダクトが生まれる" ;
+    ex:experience "ペアプログラミングやモブプログラミングの推進" .
+
+# エピソード
+ex:episode/overcoming_technical_debt rdf:type ex:Episode ;
+    rdfs:label "技術的負債の解消" ;
+    rdfs:comment "レガシーコードベースのリファクタリングに取り組んだ経験。" ;
+    ex:challenge "5年間蓄積された技術的負債により、新機能追加が困難" ;
+    ex:solution "段階的なリファクタリング計画を立案し、3ヶ月で主要部分を刷新" ;
+    ex:learned "計画的な技術的負債管理の重要性" ;
+    ex:strength "粘り強さと計画性" .
+
+ex:episode/mentoring_junior rdf:type ex:Episode ;
+    rdfs:label "ジュニアエンジニアのメンタリング" ;
+    rdfs:comment "新卒エンジニアの育成を担当した経験。" ;
+    ex:challenge "技術力の差が大きく、どう教えるべきか悩んだ" ;
+    ex:solution "ペアプログラミングとコードレビューを通じた実践的な指導" ;
+    ex:impact "メンティーが半年で独り立ちし、プロジェクトリーダーに" ;
+    ex:learned "教えることで自分の理解も深まる" ;
+    ex:strength "コミュニケーション力、忍耐力" .
+
+# 強み
+ex:strength/problem_solving rdf:type ex:Strength ;
+    rdfs:label "問題解決能力" ;
+    rdfs:comment "複雑な問題を分解し、体系的にアプローチする力。" ;
+    ex:evidence ex:project/data_pipeline, ex:episode/overcoming_technical_debt .
+
+ex:strength/communication rdf:type ex:Strength ;
+    rdfs:label "コミュニケーション力" ;
+    rdfs:comment "技術的な内容を非技術者にも分かりやすく説明できる。" ;
+    ex:evidence ex:episode/mentoring_junior, ex:project/team_app .
+
+ex:strength/adaptability rdf:type ex:Strength ;
+    rdfs:label "適応力" ;
+    rdfs:comment "新しい技術やツールを素早く学習し、実務に活用できる。" ;
+    ex:evidence ex:value/continuous_learning .
+
+# 弱み
+ex:weakness/perfectionism rdf:type ex:Weakness ;
+    rdfs:label "完璧主義的傾向" ;
+    rdfs:comment "細部にこだわりすぎて、時間がかかることがある。" ;
+    ex:overcoming "MVPアプローチを意識し、80%の完成度で一旦リリースする習慣を身につけた" .
+
+ex:weakness/delegation rdf:type ex:Weakness ;
+    rdfs:label "委譲の難しさ" ;
+    rdfs:comment "自分でやった方が早いと感じ、タスクを任せるのが苦手。" ;
+    ex:overcoming "チームの成長を優先し、意識的にタスクを委譲するように改善中" .
+
+# 目標
+ex:goal/tech_lead rdf:type ex:Goal ;
+    rdfs:label "テックリードとしての成長" ;
+    rdfs:comment "技術的な意思決定をリードし、チームを導ける存在になる。" ;
+    ex:motivation "技術力だけでなく、チーム全体の生産性を高めたい" ;
+    ex:relatedTo ex:value/team_collaboration .
+
+ex:goal/oss_contribution rdf:type ex:Goal ;
+    rdfs:label "OSSへの貢献" ;
+    rdfs:comment "オープンソースプロジェクトに積極的にコントリビュートする。" ;
+    ex:motivation "コミュニティへの恩返しと、グローバルな開発者との交流" ;
+    ex:relatedTo ex:value/continuous_learning .
