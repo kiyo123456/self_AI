@@ -60,6 +60,10 @@
 | プロンプトの置き場 | 「何を推論するか」→ LlmPort インターフェース（ドメイン層）、「どう指示するか」→ GeminiAdapter（インフラ層） | LLM を差し替えてもドメイン層が変わらない |
 | SPARQLクエリの置き場 | インフラ層の OxigraphRepository 内 | SPARQL は Oxigraph という永続化詳細に依存する |
 | InferredSkillの再生成タイミング | 非同期ジョブ（Laravel Queue） | 経験更新後にバックグラウンドで再推論しUXを損なわない |
+| フロントエンド技術 | React SPA（Vite + React + TypeScript） / Laravel APIと完全分離 | UI層とサーバー層の責務を明確に分離し、フルスタック開発者としての設計力をアピールするため |
+| 認証方式 | Laravel Sanctum SPAモード（Cookieベース） | APIトークンの保管・有効期限・削除を自前で管理する複雑さを排除するため |
+| 非同期推論の結果通知 | WebSocket（Laravel Reverb） | ポーリングは多人数使用時に定期リクエストが線形増加するが、WebSocketは推論完了時のみ通信が発生するためスケーラブル |
+| フロントのディレクトリ配置 | `react-app/`（laravel-appと並列配置） | バックエンドとフロントエンドを明確に分離し、責務の境界を構造として可視化するため |
 
 ---
 
@@ -83,30 +87,43 @@ Oxigraph（関係性ストア）
 ## 6. ディレクトリ構成（DDDレイヤード）
 
 ```
-laravel-app/
-├── app/
-│   ├── Domain/
-│   │   ├── KnowledgeGraph/              # サポートドメイン ★自分で書く
-│   │   │   ├── Models/Experience.php
-│   │   │   ├── Models/Value.php
-│   │   │   ├── ValueObjects/Triple.php
-│   │   │   └── Repositories/ITripleRepository.php
-│   │   └── SelfAnalysis/                # コアドメイン ★自分で書く
-│   │       ├── Models/InferenceSession.php
-│   │       ├── ValueObjects/InferredSkill.php
-│   │       ├── ValueObjects/Strength.php
-│   │       └── Ports/LlmPort.php
-│   ├── Application/                     # ユースケース層 ★自分で書く
-│   │   ├── KnowledgeGraph/
-│   │   │   └── RegisterExperienceUseCase.php
-│   │   └── SelfAnalysis/
-│   │       └── RunInferenceUseCase.php
-│   ├── Infrastructure/                  # AIに任せてよい
-│   │   ├── Rdf/OxigraphRepository.php
-│   │   └── Llm/GeminiAdapter.php
-│   └── Http/Controllers/
-├── resources/views/                     # Blade UI（AIに任せてよい）
-└── docker-compose.yml
+selfserch-ai/                            # リポジトリルート
+├── laravel-app/                         # バックエンド（Laravel API）
+│   ├── app/
+│   │   ├── Domain/
+│   │   │   ├── KnowledgeGraph/          # サポートドメイン ★自分で書く
+│   │   │   │   ├── Models/Experience.php
+│   │   │   │   ├── Models/Value.php
+│   │   │   │   ├── ValueObjects/Triple.php
+│   │   │   │   └── Repositories/ITripleRepository.php
+│   │   │   └── SelfAnalysis/            # コアドメイン ★自分で書く
+│   │   │       ├── Models/InferenceSession.php
+│   │   │       ├── ValueObjects/InferredSkill.php
+│   │   │       ├── ValueObjects/Strength.php
+│   │   │       └── Ports/LlmPort.php
+│   │   ├── Application/                 # ユースケース層 ★自分で書く
+│   │   │   ├── KnowledgeGraph/
+│   │   │   │   └── RegisterExperienceUseCase.php
+│   │   │   └── SelfAnalysis/
+│   │   │       └── RunInferenceUseCase.php
+│   │   ├── Infrastructure/              # AIに任せてよい
+│   │   │   ├── Rdf/OxigraphRepository.php
+│   │   │   └── Llm/GeminiAdapter.php
+│   │   └── Http/Controllers/            # APIコントローラー（AIに任せてよい）
+│   │       ├── ExperienceController.php
+│   │       ├── InferenceController.php
+│   │       └── AnalysisController.php
+│   └── docker-compose.yml
+└── react-app/                           # フロントエンド（React SPA）AIに任せてよい
+    ├── src/
+    │   ├── pages/
+    │   │   ├── Experience.tsx           # 経験入力フォーム
+    │   │   ├── Inference.tsx            # 推論実行・結果表示
+    │   │   └── Analysis.tsx             # 分析クエリフォーム
+    │   ├── components/                  # 共通UIコンポーネント
+    │   └── hooks/
+    │       └── useInferenceSocket.ts    # WebSocket接続フック
+    └── vite.config.ts
 ```
 
 ### 実装分担の方針
@@ -116,21 +133,29 @@ laravel-app/
 | Domain層 | **自分で書く** | 設計の意図が全て詰まっている。ここを書けば面接で全ての判断を説明できる |
 | Application層 | **自分で書く** | ユースケースの責務を体で覚えることが設計思考の訓練になる |
 | Infrastructure層 | AIに任せる | SPARQLの構文・Gemini APIの呼び方は技術詳細。設計の説明で問われない |
-| UI（Blade） | AIに任せる | HTMLの書き方はDDDのアピールポイントではない |
+| Laravel API（Controllers） | AIに任せる | Application層を呼ぶだけのルーティング。設計の本質ではない |
+| React SPA | AIに任せる | UIのコンポーネント実装はDDDのアピールポイントではない |
 
 ---
 
 ## 7. アーキテクチャ全体像
 
 ```
-[Blade UI]
-  経験入力フォーム
-  推論実行ボタン
-  分析クエリフォーム
+[React SPA]  react-app/
+  経験入力フォーム（pages/Experience）
+  推論実行ボタン（pages/Inference）
+  分析クエリフォーム（pages/Analysis）
+  推論完了通知受信（WebSocket via Laravel Reverb）
+       ↓ HTTP JSON API（Sanctum Cookie認証）
+       ↕ WebSocket（推論完了イベントのプッシュ通知）
+[Laravel API]  laravel-app/app/Http/Controllers/
+  ExperienceController  ← POST /api/experiences
+  InferenceController   ← POST /api/inference-sessions
+  AnalysisController    ← POST /api/analysis-queries
        ↓
 [Application層]
   RegisterExperienceUseCase  ← 経験をMySQLに保存 → Oxigraphにトリプルを書き込む
-  RunInferenceUseCase        ← 非同期ジョブで推論を実行
+  RunInferenceUseCase        ← 非同期ジョブで推論を実行 → 完了時にReverbでイベント発火
   RunAnalysisUseCase         ← InferredSkillに問いを立てる
        ↓
 [Domain層]
@@ -145,12 +170,15 @@ laravel-app/
   OxigraphRepository         ← ITripleRepositoryの実装（SPARQL）
   GeminiAdapter              ← LlmPortの実装（Gemini API）
   Laravel Queue              ← 非同期ジョブのランナー
+  Laravel Reverb             ← WebSocketサーバー（推論完了イベントのプッシュ）
   MySQL                      ← エンティティのID台帳
 ```
 
 ---
 
 ## 8. 就活での説明ストーリー
+
+### バックエンド・DDD設計の説明
 
 > 「経験・価値観を単なるテキストではなく RDF トリプルで構造化することで、
 > LLM が関係性を辿りながら推論できる設計にしました。
@@ -159,10 +187,24 @@ laravel-app/
 > 将来的には外部の職種定義 LOD（Wikidata 等）と owl:sameAs で統合し、
 > より客観的なキャリアマッチングに発展させる構想があります。」
 
-アピールできる3点：
-- **技術力**：RDF・SPARQL・DDDを正しく理解・実装している
+### フルスタック・アーキテクチャ設計の説明
+
+> 「フロントエンドを React SPA として Laravel API から完全に分離することで、
+> UI層の変更がドメイン層に伝播しない構造を実現しました。
+> この設計判断の理由は責務の明確化です。Laravel はドメインロジックと API 提供に専念し、
+> React はユーザーインタラクションと状態管理に専念することで、
+> それぞれの層を独立して変更できます。
+> また推論結果の通知には WebSocket（Laravel Reverb）を採用しました。
+> ポーリングでは多人数が同時に使用する場合、定期リクエストが線形に増加しますが、
+> WebSocket はサーバー側から完了時のみ通知を送るため、無駄なリクエストが発生しません。
+> MVP 段階でスケーラビリティを意識した設計判断です。」
+
+### アピールできる4点
+
+- **技術力**：RDF・SPARQL・DDD・React SPA・WebSocket を正しく理解・実装している
 - **設計思考**：なぜその技術・構成を選んだか説明できる
 - **拡張性**：将来の発展を見据えた設計になっている
+- **フルスタック**：バックエンド設計から UI 実装まで一貫して担当している
 
 ---
 
@@ -197,9 +239,10 @@ AIは「拡張機能」として活用し、「依存対象」にしない。
 
 ```
 Phase 1：Laravelプロジェクト新規作成 + DDDディレクトリ構成セットアップ
-Phase 2：docker-compose.yml で Oxigraph + MySQL + Laravel 環境構築
+Phase 2：docker-compose.yml で Oxigraph + MySQL + Laravel + Reverb 環境構築
 Phase 3：ドメインモデル実装（Triple, Experience, Value, LlmPort, ITripleRepository）
-Phase 4：インフラ実装（OxigraphRepository, GeminiAdapter, Laravel Queue）
+Phase 4：インフラ実装（OxigraphRepository, GeminiAdapter, Laravel Queue, Reverb）
 Phase 5：ユースケース実装（RegisterExperienceUseCase, RunInferenceUseCase）
-Phase 6：Blade UI 実装（経験入力 → 推論実行 → 結果表示）
+Phase 6：Laravel API実装（Controllers + Sanctum認証 + WebSocketイベント発火）
+Phase 7：React SPA実装（経験入力 → 推論実行 → WebSocket受信 → 結果表示）
 ```
